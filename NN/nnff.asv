@@ -68,34 +68,23 @@ function nn = nnff(nn, x, y, res)
         end
         
     elseif nargin == 4
-        macunit = fimath('OverflowAction','Saturate','RoundingMethod','nearest',...
-            'ProductMode','SpecifyPrecision',...
-            'ProductWordLength',48,'ProductFractionLength',28,...
-            'SumMode','SpecifyPrecision','SumWordLength',48,'SumFractionLength',28);
+ 
         WL = res.WL;
         %IL = res.IL;
         FL = res.FL;
         
         x = [ones(m,1) x];
         nn.a{1} = sfi(x,WL,FL);
-        nn.a{1} = setfimath(nn.a{1},macunit);
 
-        for i = 1:n-1
-            nn.W{i} = sfi(nn.W{i},WL,FL);
-            nn.W{i} = setfimath(nn.W{i},macunit);
-        end
+        
         
         
         %feedforward pass
         for i = 2 : n-1
             switch nn.activation_function 
                 case 'sigm'
-                    %nn.a{i - 1} * nn.W{i - 1}' is MACC unit 48 bits [20,28]
-                    %sfi(nn.a{i - 1} * nn.W{i - 1}',WL,FL) rounding to [16,14]
-                    %double
-                    nn.a{i} = sigm(double(sfi(nn.a{i - 1} * nn.W{i - 1}',WL,FL)));
-                    % Calculate the unit's outputs (including the bias term)                   
-                    %nn.a{i} = sfi(sigm(nn.a{i - 1} * nn.W{i - 1}'),WL,FL);
+                    % Calculate the unit's outputs (including the bias term)
+                    nn.a{i} = sfi(sigm(nn.a{i - 1} * nn.W{i - 1}'),WL,FL);
                 case 'sigm_hard'
                     nn.a{i} = sigm_hard(nn.a{i - 1} * nn.W{i - 1}');
                 case 'tanh_opt'
