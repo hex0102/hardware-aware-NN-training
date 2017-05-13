@@ -93,9 +93,10 @@ function nn = nnff(nn, x, y, res)
                     %nn.a{i - 1} * nn.W{i - 1}' is MACC unit 48 bits [20,28]
                     %sfi(nn.a{i - 1} * nn.W{i - 1}',WL,FL) rounding to [16,14]
                     %double
-                    nn.a{i} = sigm(double(sfi(nn.a{i - 1} * nn.W{i - 1}',WL,FL)));
-                    % Calculate the unit's outputs (including the bias term)                   
-                    %nn.a{i} = sfi(sigm(nn.a{i - 1} * nn.W{i - 1}'),WL,FL);
+                    A0 = nn.a{i - 1};
+                    B0 = nn.W{i - 1}';
+                    fiaccel multi -args {A0 B0};
+                    nn.a{i} = sfi(sigm(double(sfi(multi_mex(A0,B0) ,WL,FL))),WL,FL);
                 case 'sigm_hard'
                     nn.a{i} = sigm_hard(nn.a{i - 1} * nn.W{i - 1}');
                 case 'tanh_opt'
@@ -132,7 +133,7 @@ function nn = nnff(nn, x, y, res)
             case 'relu'
                 nn.a{n} = relu(nn.a{n - 1} * nn.W{n - 1}');
             case 'softmax'
-                nn.a{n} = nn.a{n - 1} * nn.W{n - 1}';
+                nn.a{n} = double(sfi(nn.a{n - 1} * nn.W{n - 1}',WL,FL));
                 nn.a{n} = exp(bsxfun(@minus, nn.a{n}, max(nn.a{n},[],2)));
                 nn.a{n} = bsxfun(@rdivide, nn.a{n}, sum(nn.a{n}, 2)); 
         end
