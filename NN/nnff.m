@@ -66,6 +66,7 @@ function nn = nnff(nn, x, y, res)
             case 'softmax'
                 nn.L = -sum(sum(y .* log(nn.a{n}))) / m;
         end
+
         
     elseif nargin == 4
         macunit = fimath('OverflowAction','Saturate','RoundingMethod','nearest',...
@@ -73,8 +74,9 @@ function nn = nnff(nn, x, y, res)
             'ProductWordLength',48,'ProductFractionLength',28,...
             'SumMode','SpecifyPrecision','SumWordLength',48,'SumFractionLength',28);
         WL = res.WL;
-        %IL = res.IL;
+        IL = res.IL;
         FL = res.FL;
+        P_f = res.P_flip; %possibility of bit flip
         
         x = [ones(m,1) x];
         nn.a{1} = sfi(x,WL,FL);
@@ -83,7 +85,47 @@ function nn = nnff(nn, x, y, res)
         for i = 1:n-1
             nn.W{i} = sfi(nn.W{i},WL,FL);
             nn.W{i} = setfimath(nn.W{i},macunit);
+            
+            if(P_f ~= 0)
+            
+                assert(P_f<=1&&P_f>0,'Bit flip probability error!!!')
+                disp(['>>>Injection bit flip to weights at a probability of ' num2str(P_f) '...' ])
+                biterror = binornd(1,P_f,size(nn.W{i},1)*size(nn.W{i},2)*WL,1);
+                rindex = find(biterror==1);
+                N_item = ceil(rindex/WL);
+                N_pos = rindex - WL*(N_item-1);
+
+                fixedbin = bin(nn.W{i}); 
+                for bcc= 1:length(rindex)
+                    disp(bcc)
+                    item = N_item(bcc);
+                    pos = N_pos(bcc);                    
+                    row = ceil(item/size(nn.W{i},1));
+                    col = item - (row - 1) * size(nn.W{i},1);
+                    
+                    orgin_bit = fixedbin(row,(col-1)*(WL+3)+N_pos);
+                    if pos == 1
+                         if(orgin_bit == '0') 
+                            nn.W{i}(row,col) = nn.W{i}(row,col) - 2^(IL-1);
+                         else
+                            nn.W{i}(row,col) = nn.W{i}(row,col) + 2^(IL-1); 
+                         end
+                    else
+                         tmp = WL - pos;
+                         if(orgin_bit == '0')
+                             nn.W{i}(row,col) = nn.W{i}(row,col) + 2^(tmp-FL);
+                         else
+                             nn.W{i}(row,col) = nn.W{i}(row,col) - 2^(tmp-FL);
+                         end                            
+                    end
+                    
+                end
+            
+            end
+        
         end
+        
+
         
         
         %feedforward pass
@@ -140,6 +182,7 @@ function nn = nnff(nn, x, y, res)
 
         %error and loss
         nn.e = y - nn.a{n};
+        
 
         switch nn.output
             case {'sigm', 'sigm_hard', 'linear', 'relu'}
@@ -147,6 +190,6 @@ function nn = nnff(nn, x, y, res)
             case 'softmax'
                 nn.L = -sum(sum(y .* log(nn.a{n}))) / m;
         end        
-        
+        %disp(nn.L)
     end
 end

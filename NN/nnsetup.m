@@ -10,7 +10,7 @@ function nn = nnsetup(architecture)
     nn.learningRate                     = 2;            %  learning rate Note: typically needs to be lower when using 'sigm' activation function and non-normalized inputs.
     nn.momentum                         = 0.5;          %  Momentum
     nn.scaling_learningRate             = 1;            %  Scaling factor for the learning rate (each epoch)
-    nn.weightPenaltyL2                  = 0;            %  L2 regularization
+    nn.weightPenaltyL2                  = 0.0001;            %  L2 regularization
     nn.nonSparsityPenalty               = 0;            %  Non sparsity penalty
     nn.sparsityTarget                   = 0.05;         %  Sparsity target
     nn.inputZeroMaskedFraction          = 0;            %  Used for Denoising AutoEncoders
@@ -20,7 +20,8 @@ function nn = nnsetup(architecture)
 
     for i = 2 : nn.n   
         % weights and weight momentum
-        nn.W{i - 1} = (rand(nn.size(i), nn.size(i - 1)+1) - 0.5) * 2 * 4 * sqrt(6 / (nn.size(i) + nn.size(i - 1)));
+        %nn.W{i - 1} = (rand(nn.size(i), nn.size(i - 1)+1) - 0.5) * 2 * 4 * sqrt(6 / (nn.size(i) + nn.size(i - 1)));
+        nn.W{i - 1} = normrnd(0,0.01, nn.size(i),nn.size(i - 1)+1);
         nn.vW{i - 1} = zeros(size(nn.W{i - 1}));
         
         % average activations (for use with sparsity)
