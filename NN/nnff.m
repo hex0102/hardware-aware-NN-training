@@ -65,6 +65,7 @@ function nn = nnff(nn, x, y, res)
                 nn.L = 1/2 * sum(sum(nn.e .^ 2)) / m; 
             case 'softmax'
                 nn.L = -sum(sum(y .* log(nn.a{n}))) / m;
+                %disp(nn.L)
         end
 
         
@@ -79,7 +80,6 @@ function nn = nnff(nn, x, y, res)
         P_f = res.P_flip; %possibility of bit flip
         P_s0 = res.P_stuck0;
         %P_s1 = res.P_stuck1;
-        N_sigm = res.N_sigm;
         
         res.sigmunit = fimath('OverflowAction','Saturate','RoundingMethod','nearest',...
             'ProductMode','SpecifyPrecision',...
@@ -207,6 +207,7 @@ function nn = nnff(nn, x, y, res)
         switch nn.output
             case {'sigm', 'sigm_hard', 'linear', 'relu'}
                 nn.L = 1/2 * sum(sum(nn.e .^ 2)) / m; 
+                
             case 'softmax'
                 nn.L = -sum(sum(y .* log(nn.a{n}))) / m;
         end        
