@@ -77,6 +77,14 @@ function nn = nnff(nn, x, y, res)
         IL = res.IL;
         FL = res.FL;
         P_f = res.P_flip; %possibility of bit flip
+        P_s0 = res.P_stuck0;
+        %P_s1 = res.P_stuck1;
+        N_sigm = res.N_sigm;
+        
+        res.sigmunit = fimath('OverflowAction','Saturate','RoundingMethod','nearest',...
+            'ProductMode','SpecifyPrecision',...
+            'ProductWordLength',2*WL,'ProductFractionLength',2*FL);
+        
         
         x = [ones(m,1) x];
         nn.a{1} = sfi(x,WL,FL);
@@ -100,8 +108,8 @@ function nn = nnff(nn, x, y, res)
                     disp(bcc)
                     item = N_item(bcc);
                     pos = N_pos(bcc);                    
-                    row = ceil(item/size(nn.W{i},1));
-                    col = item - (row - 1) * size(nn.W{i},1);
+                    row = ceil(item/size(nn.W{i},2));
+                    col = item - (row - 1) * size(nn.W{i},2);
                     
                     orgin_bit = fixedbin(row,(col-1)*(WL+3)+N_pos);
                     if pos == 1
@@ -129,23 +137,35 @@ function nn = nnff(nn, x, y, res)
         
         
         %feedforward pass
-        for i = 2 : n-1
-            switch nn.activation_function 
-                case 'sigm'
-                    %nn.a{i - 1} * nn.W{i - 1}' is MACC unit 48 bits [20,28]
-                    %sfi(nn.a{i - 1} * nn.W{i - 1}',WL,FL) rounding to [16,14]
-                    %double
-                    A0 = nn.a{i - 1};
-                    B0 = nn.W{i - 1}';
-                    fiaccel multi -args {A0 B0};
-                    nn.a{i} = sfi(sigm(double(sfi(multi_mex(A0,B0) ,WL,FL))),WL,FL);
-                case 'sigm_hard'
-                    nn.a{i} = sigm_hard(nn.a{i - 1} * nn.W{i - 1}');
-                case 'tanh_opt'
-                    nn.a{i} = tanh_opt(nn.a{i - 1} * nn.W{i - 1}');
-                case 'relu'
-                    nn.a{i} = relu(nn.a{i - 1} * nn.W{i - 1}');
+        for i = 2 : n-1           
+            %nn.a{i - 1} * nn.W{i - 1}' is MACC unit 48 bits [20,28]
+            %sfi(nn.a{i - 1} * nn.W{i - 1}',WL,FL) rounding to [16,14]
+            %convert to double then perform activation
+            
+            A0 = nn.a{i - 1};
+            B0 = nn.W{i - 1}';
+            if(P_s0 ~= 0)
+            	mask_height = size(A0,1);
+            	mask_width = size(A0,2);                        
+            	mask = binornd(1,1 - P_s0, mask_height, mask_width);
+            	A0 = A0 .* mask; % the width is extended because of multiplication                       
             end
+            
+            fiaccel multi -args {A0 B0};            
+            mac_partial = double(sfi(multi_mex(A0,B0), WL, FL));
+            
+            switch nn.activation_function 
+                case 'sigm'                                     
+                    nn.a{i} = sigm(mac_partial);                   
+                case 'sigm_hard'
+                    nn.a{i} = sigm_hard(mac_partial,res);
+                case 'tanh_opt'
+                    nn.a{i} = tanh_opt(mac_partial);
+                case 'relu'
+                    nn.a{i} = relu(mac_partial);
+            end
+            
+            nn.a{i} = sfi(nn.a{i},WL,FL);
 
             %dropout
             if(nn.dropoutFraction > 0)
