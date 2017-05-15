@@ -1,16 +1,20 @@
 %inference on ideal hardware
 [original, original_index, original_loss] = nntest(nn, test_x, test_y);
 
+tic
 %Different resolution
 WL = [16 12 8 6];
 FL = cell([1 4]);
-FL{1} = [14 12 10];
-FL{2} = [10 8 4];
-FL{3} = [6 4 2];
-FL{4} = [4 2];
+FL{1} = [14 13 12 11 10];
+FL{2} = [10 9 8 6 4 2 ];
+FL{3} = [6 5 4 3 2 1];
+FL{4} = [4 3 2 1];
 
-acc_inference = FL;
-loss_inference = FL;
+result.acc_inference = FL;
+result.loss_inference = FL;
+result.WL = WL;
+result.FL = FL;
+
 %{
     DEFAULT CONFIGURATIONS ABOUT HARDWARE NO-IDEAL
 %}
@@ -31,8 +35,11 @@ for N_wl = 1:size(WL,2)
             ' ) with fraction length ( ' num2str(res.FL) ' )']);
         res.IL = res.WL - res.FL; 
         [er, bad, loss]=nntest(nn, test_x, test_y, res);
-        acc_inference{N_wl}(N_fl) = er;
-        loss_inference{N_wl}(N_fl) = loss;   
+        result.acc_inference{N_wl}(N_fl) = er;
+        result.loss_inference{N_wl}(N_fl) = loss;   
         disp(['>>>>>>Error rate is : ' num2str(er) '; Averaged Loss is : ' num2str(loss)]);
     end
 end
+toc
+
+
