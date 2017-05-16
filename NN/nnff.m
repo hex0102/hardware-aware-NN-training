@@ -105,7 +105,7 @@ function nn = nnff(nn, x, y, res)
 
                 fixedbin = bin(nn.W{i}); 
                 for bcc= 1:length(rindex)
-                    disp(bcc)
+                    %disp(bcc)
                     item = N_item(bcc);
                     pos = N_pos(bcc);                    
                     row = ceil(item/size(nn.W{i},2));

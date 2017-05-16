@@ -31,7 +31,7 @@ res.N_sigm = 8; % sigmoid N piece-wise linear
 % >>> Testing different bitwidths ...
 
 
-%{
+
 for N_wl = 1:size(WL,2)
     res.WL = WL(N_wl);
     for N_fl = 1:size(FL{N_wl},2)     
@@ -40,8 +40,8 @@ for N_wl = 1:size(WL,2)
             ' ) with fraction length ( ' num2str(res.FL) ' )']);
         res.IL = res.WL - res.FL; 
         [er, bad, loss]=nntest(nn, test_x, test_y, res);
-        result.acc_inference{N_wl}(N_fl) = er;
-        result.loss_inference{N_wl}(N_fl) = loss;   
+        result.acc_inference{N_wl}(1,N_fl) = er;
+        result.loss_inference{N_wl}(1,N_fl) = loss;   
         disp(['>>>>>>Error rate is : ' num2str(er) '; Averaged Loss is : ' num2str(loss)]);
     end
 end
@@ -49,6 +49,7 @@ end
 
 % >>> Testing different sigmoid implementations ...
 
+%{
 nn.activation_function = 'sigm_hard';
 N_sigms = [4 8];
 for i=1:size(N_sigms,2)
@@ -61,13 +62,56 @@ for i=1:size(N_sigms,2)
                 ' ) with fraction length ( ' num2str(res.FL) ' )']);
             res.IL = res.WL - res.FL; 
             [er, bad, loss]=nntest(nn, test_x, test_y, res);
-            result.acc_inference{N_wl}(i,N_fl) = er;
-            result.loss_inference{N_wl}(i,N_fl) = loss;   
+            result.acc_inference{N_wl}(i+1,N_fl) = er;
+            result.loss_inference{N_wl}(i+1,N_fl) = loss;   
             disp(['>>>>>>Error rate is : ' num2str(er) '; Averaged Loss is : ' num2str(loss)]);
         end
     end
 end
 %}
+
+% >>> Testing different stuck-at-0 rate ...
+
+%{
+flip_rate = [0.1 0.01  0.001 0.0001];
+for i=1:size(flip_rate,2)
+    res.P_stuck0 = flip_rate(i);
+    for N_wl = 1:size(WL,2)
+        res.WL = WL(N_wl);
+        for N_fl = 1:size(FL{N_wl},2)     
+            res.FL = FL{N_wl}(N_fl);
+            disp(['>>>Processing Fixed point bitwidth ( ' num2str(res.WL) ...
+                ' ) with fraction length ( ' num2str(res.FL) ' )']);
+            res.IL = res.WL - res.FL; 
+            [er, bad, loss]=nntest(nn, test_x, test_y, res);
+            result.acc_inference{N_wl}(i+1,N_fl) = er;
+            result.loss_inference{N_wl}(i+1,N_fl) = loss;   
+            disp(['>>>>>>Error rate is : ' num2str(er) '; Averaged Loss is : ' num2str(loss)]);
+        end
+    end
+end
+%}
+
+% >>> Testing different flip rate ...
+P_f = [0.001 0.0001 0.00001];
+
+for i=1:size(P_f,2)
+    res.P_flip = P_f(i);
+    for N_wl = 1:size(WL,2)
+        res.WL = WL(N_wl);
+        for N_fl = 1:size(FL{N_wl},2)     
+            res.FL = FL{N_wl}(N_fl);
+            disp(['>>>Processing Fixed point bitwidth ( ' num2str(res.WL) ...
+                ' ) with fraction length ( ' num2str(res.FL) ' )']);
+            res.IL = res.WL - res.FL; 
+            [er, bad, loss]=nntest(nn, test_x, test_y, res);
+            result.acc_inference{N_wl}(i+1,N_fl) = er;
+            result.loss_inference{N_wl}(i+1,N_fl) = loss;   
+            disp(['>>>>>>Error rate is : ' num2str(er) '; Averaged Loss is : ' num2str(loss)]);
+        end
+    end
+end
+
 toc
 
 

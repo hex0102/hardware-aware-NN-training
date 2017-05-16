@@ -1,9 +1,0 @@
-
-
-linenum = size(result.acc_inference,2);
-for i = 1:1:linenum
-    er_rate = result.acc_inference{i};
-    fraction = result.FL
-    
-end
-   
